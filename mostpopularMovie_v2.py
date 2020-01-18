@@ -13,10 +13,11 @@ class MostPopularMovie(MRJob):
 		return [
 
 			MRStep(mapper = self.mapper_get_ratings,
-				reducer_init=self.reducer_init,
+				#reducer_init=self.reducer_init,
 				reducer = self.reducer_count_ratings),
 
-			MRStep(reducer = self.reducer_find_max)
+			MRStep(reducer_init=self.reducer_init,
+				reducer = self.reducer_find_max)
 
 		]
 
@@ -24,6 +25,13 @@ class MostPopularMovie(MRJob):
 	def mapper_get_ratings(self, _, line):
 			(userID, movieID, rating, timestamp) = line.split('\t')
 			yield movieID, 1
+
+	
+
+	def reducer_count_ratings(self, key, value):
+			yield None, (sum(value), key)
+
+
 
 	def reducer_init(self):
 			self.movieNames = {}
@@ -33,12 +41,10 @@ class MostPopularMovie(MRJob):
 					fields = line.split('|')
 					self.movieNames[fields[0]] = fields[1]
 
-	def reducer_count_ratings(self, key, value):
-			yield None, (sum(value), self.movieNames[key])
-
 
 	def reducer_find_max(self, key, values):
-			yield max(values)
+			max_rated_movie = max(values)
+			yield self.movieNames[max_rated_movie[1]], max_rated_movie[0]
 
 
 
